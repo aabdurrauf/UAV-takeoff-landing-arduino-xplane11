@@ -1,4 +1,4 @@
-# UAV-Takeoff-Landing-Arduino-XPlane11
+# UAV Takeoff Landing Arduino X-Plane 11
 This project demonstrates an autonomous takeoff and landing system for a fixed-wing UAV in a simulated environment using X-Plane 11, an Arduino-based flight computer, and a Python interface. The UAV used is named Raphael UAV owned by ATA Team, and the entire flight mission — from takeoff to landing — is autonomously managed by a microcontroller running a custom algorithm.
 
 ## ✈️ Project Overview
