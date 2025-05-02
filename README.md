@@ -5,7 +5,7 @@ This project demonstrates an autonomous takeoff and landing system for a fixed-w
 1. Objective: To use a microcontroller (Arduino) as a flight computer to autonomously control a fixed-wing UAV in the X-Plane 11 simulator.
 2. Simulation Target: The Raphael UAV model (or any similar fixed-wing UAV model). [ATA Team - Raphael V2 UAV 1.0.0](https://forums.x-plane.org/files/file/87594-ata-team-raphael-v2-uav/)
 3. Control Flow: The flight computer onboard Arduino receives flight data, runs a state machine algorithm for autonomous takeoff and landing, and sends control inputs (elevator, aileron, rudder, throttle, and flaps) back to the simulator via Python.
--
+
 ## 📁 Project Structure
 ```
 UAV-Takeoff-Landing-Arduino-XPlane11/
@@ -25,7 +25,7 @@ UAV-Takeoff-Landing-Arduino-XPlane11/
     - pyKey for keypress simulation
     - X-PlaneConnect (by NASA) for UDP communication with X-Plane 11
 - uav_xplane/: Contains the Arduino .ino code that runs the UAV takeoff and landing algorithm.
--
+
 ## 🧰 Requirements
 - X-Plane 11 simulator
 - Arduino board + Arduino IDE
@@ -34,7 +34,7 @@ UAV-Takeoff-Landing-Arduino-XPlane11/
   - pyserial
   - xpc (X-PlaneConnect)
   - pyKey
-- 
+  
 ## 🚀 How to Run
 1. Flash Arduino Code
 - Open the uav_takeoff_landing.ino file in Arduino IDE and upload it to your Arduino board.
@@ -55,11 +55,10 @@ Python
 X-Plane 11
 
 ```
--
 
 - Flight Data (altitude, airspeed, pitch, yaw, etc.) → from X-Plane to Arduino
 - Control Inputs (throttle, rudder, elevator, aileron, flaps) → from Arduino to X-Plane
--
+
 📌 Notes
 The system is modular: you can replace the UAV model as long as it's a fixed-wing type.
 The current control strategy is a phase-based state machine, covering:
@@ -69,9 +68,9 @@ The current control strategy is a phase-based state machine, covering:
 4. Descent
 5. Flare
 6. Landing
--
+
 ## Credits
-X-Plane 11 - [Download X-plane 11](https://www.x-plane.com/product/desktop/)
-Raphael UAV Model – [ATA Team - Raphael V2 UAV 1.0.0](https://forums.x-plane.org/files/file/87594-ata-team-raphael-v2-uav/)
-NASA X-PlaneConnect – [XPlaneConnect](https://github.com/nasa/XPlaneConnect)
-pyKey Library – [pyKey](https://github.com/gauthsvenkat/pyKey)
+* X-Plane 11 - [Download X-plane 11](https://www.x-plane.com/product/desktop/)
+* Raphael UAV Model – [ATA Team - Raphael V2 UAV 1.0.0](https://forums.x-plane.org/files/file/87594-ata-team-raphael-v2-uav/)
+* NASA X-PlaneConnect – [XPlaneConnect](https://github.com/nasa/XPlaneConnect)
+* pyKey Library – [pyKey](https://github.com/gauthsvenkat/pyKey)
