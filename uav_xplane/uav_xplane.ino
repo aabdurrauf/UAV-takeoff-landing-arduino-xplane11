@@ -1,7 +1,10 @@
 #include <math.h>
 
 float values[12];
-float target_altitude = 25.0; // target altitude
+float target_altitude = 10.0; // target altitude
+float descent_altitude = 6.0;
+float flare_altitude = 1.4;
+float touchdown_altitude = 0.15;
 
 // 0: take off, 1: climb, 2: cruise, 3: approach, 
 // 4: final descent, 5: flare, 6: landing, 7: complete
@@ -19,9 +22,9 @@ const float Pr = 0.1; // proportional rudder
 const float Dr = 0.01; // derivative rudder
 const float Pa = 0.01; // prop. aileron
 const float Da = 0.001; // der. aileron
-const float Pe = 0.1; // prop. elevator
+const float Pe = 0.16; // prop. elevator
 const float De = 0.01; // der. elevator
-const float Ie = 0.0; // integral elevator
+const float Ie = 0.01; // integral elevator
 
 struct FlightData {
   float altitude;
@@ -118,7 +121,7 @@ void loop() {
     // elevator, aileorn, rudder, throttle, flaps
     float control[5] = {0.0, 0.0, 0.0, 0.0, 0.0};
 
-    if (phase == 0) {
+    if (phase == 0) { // take off
       flight_data.use_pitch_stabilizer = 0;
       flight_data.use_roll_stabilizer = 1;
       flight_data.use_yaw_stabilizer = 1;
@@ -155,7 +158,7 @@ void loop() {
       }
 
     } 
-    else if (phase == 1) {
+    else if (phase == 1) { // climb
       flight_data.use_pitch_stabilizer = 1;
       flight_data.use_roll_stabilizer = 1;
       flight_data.use_yaw_stabilizer = 1;
@@ -180,7 +183,7 @@ void loop() {
         Serial.write((byte*)control, sizeof(control));
       }
     }
-    else if (phase == 2) {
+    else if (phase == 2) { // cruise
       if (cruise_i < 20) {
         flight_data.use_pitch_stabilizer = 1;
         flight_data.use_roll_stabilizer = 1;
@@ -200,8 +203,78 @@ void loop() {
         phase++;
       }
     }
-    else { // currently finished. will be continued to land
+    else if (phase == 3) { // descent / approaching target descent
+      flight_data.use_pitch_stabilizer = 1;
+      flight_data.use_roll_stabilizer = 1;
+      flight_data.use_yaw_stabilizer = 1;
+      flight_data.pitch_target = -5.0;
+      ControlData ctrl = stabilize_flight(flight_data);
 
+      control[0] = ctrl.elevator;
+      control[1] = ctrl.aileron;
+      control[2] = ctrl.rudder;
+      control[3] = 0.22; // slowing down
+      control[4] = 0.5;
+      Serial.write((byte*)control, sizeof(control));
+
+      if (flight_data.altitude <= descent_altitude) {
+        phase++;
+      }
     }
+    else if (phase == 4) { // final descent
+      flight_data.use_pitch_stabilizer = 1;
+      flight_data.use_roll_stabilizer = 1;
+      flight_data.use_yaw_stabilizer = 1;
+      flight_data.pitch_target = -7.0;
+      ControlData ctrl = stabilize_flight(flight_data);
+
+      control[0] = ctrl.elevator;
+      control[1] = ctrl.aileron;
+      control[2] = ctrl.rudder;
+      control[3] = 0.1; // slowing down
+      control[4] = 0.5;
+      Serial.write((byte*)control, sizeof(control));
+
+      if (flight_data.altitude <= flare_altitude) {
+        phase++;
+      }
+    }
+    else if (phase == 5) { // flare
+      flight_data.use_pitch_stabilizer = 1;
+      flight_data.use_roll_stabilizer = 1;
+      flight_data.use_yaw_stabilizer = 1;
+      flight_data.pitch_target = -2.0;
+      ControlData ctrl = stabilize_flight(flight_data);
+
+      control[0] = ctrl.elevator;
+      control[1] = ctrl.aileron;
+      control[2] = ctrl.rudder;
+      control[3] = 0.075; // slowing down
+      control[4] = 0.5;
+      Serial.write((byte*)control, sizeof(control));
+      
+      if (flight_data.altitude <= touchdown_altitude) {
+        phase++;
+      }
+    }
+    else if (phase == 6) { // landing
+      control[0] = 0.0;
+      control[1] = 0.0;
+      control[2] = 0.0;
+      control[3] = 0.0; 
+      control[4] = 0.0; // shutdown all machine and neutral
+      Serial.write((byte*)control, sizeof(control));
+      if (flight_data.airspeed <= 0.1) {
+        phase++;
+      }
+    }
+    else {
+      // send signal indicating the uav has landed
+      float landed_signal[3] = {1.23, 4.56, 7.89};
+      Serial.write((byte*)landed_signal, sizeof(landed_signal));
+    }
+  }
+  else {
+    // there are some missing data
   }
 }

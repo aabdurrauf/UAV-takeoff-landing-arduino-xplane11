@@ -25,6 +25,7 @@ class Simulation:
         self.arduino = serial.Serial(port=arduino_port, baudrate=115200, timeout=.1)
 
         self.has_crashed = 0.0
+        self.has_landed = False
         self.set_engine_and_flap_takeoff = True
         self.accumulated_pitch_error = 0
         self.cruise_i = 0
@@ -46,7 +47,7 @@ class Simulation:
     def simulate(self):
         self.set_view()
 
-        while not self.has_crashed:
+        while not self.has_crashed and not self.has_landed:
             state = self.uav.get_states()
             altitude = state[0]
             pos_x = state[1]
@@ -60,6 +61,15 @@ class Simulation:
             roll_rate = state[11]
             yaw_rate = state[12]
             self.has_crashed = state[13]
+
+            # save the state history
+            self.state_history.append([altitude, pos_x, pos_y, speed_kias, ver_velocity,
+                            pitch, roll, yaw, pitch_rate, roll_rate, yaw_rate])
+            
+            print(f"Received flight data:"
+                  f"\tAltitude: {altitude:.2f}"
+                  f"\tAirspeed: {speed_kias:.2f}"
+                  f"\tPitch:    {pitch:.2f}\n")
 
             # Pack 12 floats (4 bytes each) = 48 bytes
             data_struct = struct.pack('<12f',
@@ -75,11 +85,18 @@ class Simulation:
                 self.uav.send_control(elevator=elevator, aileron=aileron,
                                       rudder=rudder, throttle=throttle, flaps=flaps)
                 print(f"Received control data:"
-                      f"\n  Elevator: {elevator:.2f}"
-                      f"\n  Aileron:  {aileron:.2f}"
-                      f"\n  Rudder:   {rudder:.2f}"
-                      f"\n  Throttle: {throttle:.0f}"
-                      f"\n  Flaps:    {flaps:.0f}")
+                      f"\tElevator: {elevator:.2f}"
+                      f"\tAileron:  {aileron:.2f}"
+                      f"\tRudder:   {rudder:.2f}"
+                      f"\tThrottle: {throttle:.0f}"
+                      f"\tFlaps:    {flaps:.0f}\n")
+                
+                # save the control history
+                self.action_history.append([elevator, aileron, rudder, throttle, flaps])
+
+            elif len(data) == 12 and round(sum(struct.unpack('fff', data)), 2) == 13.68:
+                print("Landed signal received from flight computer\nThe UAV has landed successfully.")
+                self.has_landed = True
             else:
                 print("\ndata not received: ", data, "\n")
 
