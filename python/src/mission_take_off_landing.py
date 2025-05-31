@@ -6,7 +6,6 @@ Created on Wed Apr 02 21:24:46 2025
 """
 
 from utils import switch_tab, set_camera_behind
-from uavs import UAVs
 import xpc
 import time
 

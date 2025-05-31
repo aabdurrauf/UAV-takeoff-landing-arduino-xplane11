@@ -140,8 +140,10 @@ class UAV:
         """
         
         drefs = ['sim/flightmodel2/position/y_agl', # altitude
-                 'sim/flightmodel/position/local_x', # positi on x
+                 'sim/flightmodel/position/local_x', # position x
                  'sim/flightmodel/position/local_z', # position z (position y is the altitude)
+                 'sim/flightmodel/position/latitude', # latitude
+                 'sim/flightmodel/position/longitude', # longitude
                  'sim/flightmodel/position/indicated_airspeed', # Knots Indicated Airspeed (KIAS)
                  'sim/flightmodel/position/vh_ind', # vertical velocity
                  'sim/flightmodel/position/theta', # pitch angle
@@ -158,7 +160,8 @@ class UAV:
         try:
             self.client.clearBuffer()
             values = self.client.getDREFs(drefs)
-            values = np.array(values).flatten()            
+            values = np.array(values).flatten()  
+            # print("values:", values)          
             
             if len(values) < len(drefs):
                 raise Exception()
@@ -167,7 +170,7 @@ class UAV:
         except:
             self.client.clearBuffer()
             # set values to 0 if error occurred in communication with x-plane
-            values = np.zeros(13)
+            values = np.zeros(16)
             print("Error getting the states.")
             
         return values
@@ -215,6 +218,16 @@ class UAV:
     
     def get_heading(self):
         return self.client.getDREF('sim/flightmodel/position/psi')[0]
+    
+    def get_current_lat_long(self):
+        drefs = ['sim/flightmodel/position/latitude', 'sim/flightmodel/position/longitude']
+        values = self.client.getDREFs(drefs)
+        values = np.array(values).flatten()
+
+        if len(values) < len(drefs):
+            raise Exception()
+        
+        return values
     
     def sendDREF(self, dref, value):
         try:

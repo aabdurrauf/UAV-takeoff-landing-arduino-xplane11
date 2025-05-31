@@ -52,18 +52,20 @@ class Simulation:
             altitude = state[0]
             pos_x = state[1]
             pos_y = state[2]
-            speed_kias = state[3]
-            ver_velocity = state[4]
-            pitch = state[5]
-            roll = state[6]
-            yaw = state[7]
-            pitch_rate = state[10]
-            roll_rate = state[11]
-            yaw_rate = state[12]
-            self.has_crashed = state[13]
+            lat = state[3]
+            long = state[4]
+            speed_kias = state[5]
+            ver_velocity = state[6]
+            pitch = state[7]
+            roll = state[8]
+            yaw = state[9]
+            pitch_rate = state[12]
+            roll_rate = state[13]
+            yaw_rate = state[14]
+            self.has_crashed = state[15]
 
             # save the state history
-            self.state_history.append([altitude, pos_x, pos_y, speed_kias, ver_velocity,
+            self.state_history.append([altitude, pos_x, pos_y, lat, long, speed_kias, ver_velocity,
                             pitch, roll, yaw, pitch_rate, roll_rate, yaw_rate])
             
             print(f"Received flight data:"
@@ -71,15 +73,16 @@ class Simulation:
                   f"\tAirspeed: {speed_kias:.2f}"
                   f"\tPitch:    {pitch:.2f}\n")
 
-            # Pack 12 floats (4 bytes each) = 48 bytes
-            data_struct = struct.pack('<12f',
-                            altitude, pos_x, pos_y, speed_kias, ver_velocity,
+            # Pack 14 floats (4 bytes each) = 56 bytes
+            data_struct = struct.pack('<14f',
+                            altitude, pos_x, pos_y, lat, long, speed_kias, ver_velocity,
                             pitch, roll, yaw, pitch_rate, roll_rate, yaw_rate,
                             self.initial_heading)
             self.arduino.write(data_struct)
             
             # read control data from arduino
             data = self.arduino.read(20)
+            print("len(data):", len(data))
             if len(data) >= 20:
                 elevator, aileron, rudder, throttle, flaps = struct.unpack('fffff', data)
                 self.uav.send_control(elevator=elevator, aileron=aileron,
