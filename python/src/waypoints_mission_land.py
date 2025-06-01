@@ -3,10 +3,9 @@
 """
 Created on Thu May 01 21:39:27 2025
 
-@author: Ammar Abdurrauf    
+@author: Ammar Abdurrauf
 """
 
-import os
 import uav
 import time
 import serial
@@ -14,7 +13,6 @@ import struct
 import random
 import math
 import matplotlib.pyplot as plt
-from datetime import datetime
 from itertools import permutations
 
 from utils import switch_tab, set_camera_behind
@@ -26,6 +24,12 @@ A = [40.98651667882724, 29.21878590015432]
 B = [40.98653153123276, 29.209383731215187]
 C = [40.99910588578329, 29.210257488500844]
 D = [40.99909130112695, 29.219542797172146]
+
+# landing points (lat, long)
+landing_1 = [40.99858976964984, 29.216027104039227, 180, float('inf')]
+landing_2 = [40.9868962511178, 29.21598759032766, 0, float('inf')]
+# landing_3 = [40.994973498378926, 29.218985856610313, 225, float('inf')]
+# landing_4 = [40.990310493590286, 29.212779962738693, 45, float('inf')]
 
 # constants
 X = -998
@@ -52,17 +56,14 @@ class Simulation:
         self.waypoints = []
         self.set_waypoints()
 
-        self.uav.resume_sim()
-
-        self.best_order = None
-        self.uav_trajectory = []
-        self.corners = [A, B, C, D]
+        self.landing_points = [landing_1, landing_2, landing_3, landing_4]
 
 
     def calculate_best_order_and_display(self):
-        self.best_order, _ = self.solve_tsp()
-        self.plot_waypoints(self.initial_pos, self.corners, self.best_order)
-        return self.best_order
+        corners = [A, B, C, D]
+        best_order, _ = self.solve_tsp()
+        self.plot_waypoints(self.initial_pos, corners, best_order)
+        return best_order
 
     def set_waypoints(self):
         self.waypoints = self.generate_random_points_in_area([A, B, C, D])
@@ -136,10 +137,9 @@ class Simulation:
 
         return points
     
-    def plot_waypoints(self, initial_coordinate, corners, waypoint_order, uav_trajectory=None):
+    def plot_waypoints(self, initial_coordinate, corners, waypoint_order):
         """
         Plots the bounding box, initial UAV position, waypoints, and the UAV's trajectory plan.
-        If uav_trajectory is provided, it overlays the real UAV path on top of the plan.
         """
         # Extract coordinates
         corner_lats = [pt[0] for pt in corners] + [corners[0][0]]
@@ -155,13 +155,6 @@ class Simulation:
         # Plot bounding box
         plt.plot(corner_lons, corner_lats, 'b--', label='Bounding Box')
 
-        # Plot real UAV trajectory if provided
-        if uav_trajectory is not None:
-            uav_lats = [pt[0] for pt in uav_trajectory]
-            uav_lons = [pt[1] for pt in uav_trajectory]
-            plt.plot(uav_lons, uav_lats, color='orange', linewidth=2, label='UAV Real Trajectory')
-            # plt.scatter(uav_lons, uav_lats, color='orange', s=5)  # optional: mark each point
-
         # Plot waypoints
         plt.scatter(waypoint_lons, waypoint_lats, color='red', label='Waypoints')
         for i, (lat, lon) in enumerate(zip(waypoint_lats, waypoint_lons), 1):
@@ -171,7 +164,7 @@ class Simulation:
         plt.scatter(init_lon, init_lat, marker='^', color='green', s=100, label='Initial Position')
         plt.text(init_lon, init_lat, 'Start', fontsize=10, ha='left')
 
-        # Draw planned trajectory
+        # Draw trajectory arrows from initial point to waypoints in order
         traj_points = [initial_coordinate] + waypoint_order
         for i in range(len(traj_points) - 1):
             lat1, lon1 = traj_points[i]
@@ -179,25 +172,19 @@ class Simulation:
             plt.annotate("",
                         xy=(lon2, lat2), xycoords='data',
                         xytext=(lon1, lat1), textcoords='data',
-                        arrowprops=dict(arrowstyle="->", color='gray', lw=1.5))
+                        arrowprops=dict(arrowstyle="->", color='gray', lw=1.5),
+                        )
 
         plt.xlabel("Longitude")
         plt.ylabel("Latitude")
         plt.title("UAV Waypoints and Planned Trajectory")
         plt.legend()
 
+        # Flip x-axis if needed
         plt.gca().invert_xaxis()
         plt.gca().invert_yaxis()
         plt.grid(True)
         plt.axis('equal')
-
-        # Save the figure
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        save_path = f"D:/Projects/uav_arduino/pics/uav_trajectory_{timestamp}.png"
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        plt.savefig(save_path, dpi=300)
-        print(f"Saved trajectory plot to: {save_path}")
-
         plt.show()
 
     def solve_tsp(self, bearing_tolerance=30):
@@ -239,6 +226,26 @@ class Simulation:
                 bearing_tolerance + 30
 
         return list(best_order), min_distance
+
+    # def solve_tsp(self):
+    #     """
+    #     Solves TSP using brute-force search (optimal for small number of points).
+    #     Returns the best ordered list of waypoints and the total distance in meters.
+    #     """
+    #     best_order = None
+    #     min_distance = float('inf')
+
+    #     for perm in permutations(self.waypoints):
+    #         total_dist = 0
+    #         for i in range(len(perm) - 1):
+    #             p1, p2 = perm[i], perm[i+1]
+    #             total_dist += self.haversine_distance(p1[0], p1[1], p2[0], p2[1])
+
+    #         if total_dist < min_distance:
+    #             min_distance = total_dist
+    #             best_order = perm
+
+    #     return list(best_order), min_distance
 
     def set_view(self):
         """
@@ -335,8 +342,9 @@ class Simulation:
         
         wp_index = 0
 
-        landing_phase = 'approach'
-        flare_altitude = 1.5
+        selected_landing_point = landing_1
+        min_bearing_error = None
+        landing_options = []
 
         while not self.has_crashed and not self.has_landed:
             state = self.uav.get_states()
@@ -356,8 +364,6 @@ class Simulation:
             self.has_crashed = state[15]
 
             current_pos = [lat, long, altitude]
-
-            self.uav_trajectory.append(current_pos)
 
             if phase == 'takeoff':
                 self.stabilize_flight(yaw, yaw_rate, roll, roll_rate, yaw_target=self.initial_heading)
@@ -394,51 +400,122 @@ class Simulation:
 
                 dist_to_target = self.haversine_distance(current_pos[0], current_pos[1], 
                                                          best_order[wp_index][0], best_order[wp_index][1])
-
-                self.go_to_waypoint(yaw=yaw, yaw_rate=yaw_rate, roll=roll, roll_rate=roll_rate,
-                                    pitch=pitch, pitch_rate=pitch_rate, current_pos=current_pos,
-                                    waypoint=best_order[wp_index], ver_vel=ver_velocity)
-
-                print("dist_to_target: {:.2f} m".format(dist_to_target))
+                print("dist_to_target:", dist_to_target, "m")
                 if dist_to_target < 10:
                     wp_index += 1
                     if wp_index >= len(best_order):
                         print('MISSION COMPLETE... Preparing to land')
-                        phase = 'landing'
+                        phase = 'prepare_to_land'
 
-            elif phase == 'landing':
-                if landing_phase == 'approach':
-                    self.uav.send_control(throttle=0.25, flaps=0.5)  # Reduce throttle, extend flaps
-                    self.stabilize_flight(yaw, yaw_rate, roll, roll_rate, pitch, pitch_rate,
-                                          roll_target=0, pitch_target=-5)
-                    if altitude <= target_altitude:
-                        landing_phase = 'final_descent'
+                self.go_to_waypoint(yaw=yaw, yaw_rate=yaw_rate, roll=roll, roll_rate=roll_rate,
+                                    pitch=pitch, pitch_rate=pitch_rate, current_pos=current_pos,
+                                    waypoint=best_order[wp_index], ver_vel=ver_velocity)
+            
+            elif phase == 'prepare_to_land':
+                # check which landing points is in the front and closest
+                for landing in self.landing_points:
+                    bearing_to_landing = self.bearing_angle(
+                        current_pos[0], current_pos[1], landing[0], landing[1]
+                    )
+                    bearing_error = self.angular_diff(yaw, bearing_to_landing)
+                    if bearing_error < 30:
+                        landing_options.append(landing)
                 
-                elif landing_phase == 'final_descent':
-                    self.uav.send_control(throttle=0.1)  # Further reduce throttle
-                    self.stabilize_flight(yaw, yaw_rate, roll, roll_rate, pitch, pitch_rate,
-                                          yaw_target=yaw, roll_target=0, pitch_target=-7)
-                    if altitude <= flare_altitude:
-                        landing_phase = 'flare'
+                if len(landing_options) <= 0:
+                    landing_options = self.landing_points
+
+                for opt in landing_options:
+                    bearing_to_landing = self.bearing_angle(
+                        current_pos[0], current_pos[1], opt[0], opt[1]
+                    )
+                    bearing_error = self.angular_diff(yaw, bearing_to_landing)
+
+                    if min_bearing_error == None:
+                        min_bearing_error = bearing_error
+                        selected_landing_point = opt
+                    elif bearing_error < min_bearing_error:
+                        min_bearing_error = bearing_error
+                        selected_landing_point = opt
+
+                if abs(min_bearing_error) < 45:
+                    # create a beziere curve like 90 degree in rocket
+
                 
-                elif landing_phase == 'flare':
-                    self.uav.send_control(throttle=0.08)  # Cut throttle
-                    self.stabilize_flight(yaw, yaw_rate, roll, roll_rate, pitch, pitch_rate,
-                                          yaw_target=yaw, roll_target=0, pitch_target=2)  # Slightly nose up
-                    if altitude < 0.5:  # Touchdown
-                        landing_phase = 'complete'
+
+
+                phase = 'go_to_landing_point'
+
+            elif phase == 'go_to_landing_point':
+                pass
+
+
                 
-                elif landing_phase == 'complete':
-                    self.uav.send_control(throttle=0.0, flaps=0.0, gear=1)  # Deploy landing gear
-                    print("Landing complete.")
-                    self.has_landed = True
+
+
+    def simulate(self):
+        self.set_view()
+
+        while not self.has_crashed and not self.has_landed:
+            state = self.uav.get_states()
+            altitude = state[0]
+            pos_x = state[1]
+            pos_y = state[2]
+            lat = state[3]
+            long = state[4]
+            speed_kias = state[5]
+            ver_velocity = state[6]
+            pitch = state[7]
+            roll = state[8]
+            yaw = state[9]
+            pitch_rate = state[12]
+            roll_rate = state[13]
+            yaw_rate = state[14]
+            self.has_crashed = state[15]
+
+            # save the state history
+            self.state_history.append([altitude, pos_x, pos_y, lat, long, speed_kias, ver_velocity,
+                            pitch, roll, yaw, pitch_rate, roll_rate, yaw_rate])
+            
+            print(f"Received flight data:"
+                  f"\tAltitude: {altitude:.2f}"
+                  f"\tAirspeed: {speed_kias:.2f}"
+                  f"\tPitch:    {pitch:.2f}\n")
+
+            # Pack 14 floats (4 bytes each) = 56 bytes
+            data_struct = struct.pack('<14f',
+                            altitude, pos_x, pos_y, lat, long, speed_kias, ver_velocity,
+                            pitch, roll, yaw, pitch_rate, roll_rate, yaw_rate,
+                            self.initial_heading)
+            self.arduino.write(data_struct)
+            
+            # read control data from arduino
+            data = self.arduino.read(20)
+            print("len(data):", len(data))
+            if len(data) >= 20:
+                elevator, aileron, rudder, throttle, flaps = struct.unpack('fffff', data)
+                self.uav.send_control(elevator=elevator, aileron=aileron,
+                                      rudder=rudder, throttle=throttle, flaps=flaps)
+                print(f"Received control data:"
+                      f"\tElevator: {elevator:.2f}"
+                      f"\tAileron:  {aileron:.2f}"
+                      f"\tRudder:   {rudder:.2f}"
+                      f"\tThrottle: {throttle:.0f}"
+                      f"\tFlaps:    {flaps:.0f}\n")
                 
-                print(f"PHASE: {landing_phase}, ALT: {altitude:.2f}, SPD: {speed_kias:.2f}, PITCH: {pitch:.2f}")
-                time.sleep(0.1)
-        
-        self.plot_waypoints(self.initial_pos, self.corners, self.best_order, uav_trajectory=self.uav_trajectory)
+                # save the control history
+                self.action_history.append([elevator, aileron, rudder, throttle, flaps])
+
+            elif len(data) == 12 and round(sum(struct.unpack('fff', data)), 2) == 13.68:
+                print("Landed signal received from flight computer\nThe UAV has landed successfully.")
+                self.has_landed = True
+            else:
+                print("\ndata not received: ", data, "\n")
 
 
 sim = Simulation()
 corners = [A, B, C, D]
+# best_order, total_dist = sim.solve_tsp()
+# print("best order:", best_order)
+# sim.plot_waypoints(initial_coordinate, corners, best_order)
 sim.run()
+# sim.simulate()
