@@ -79,6 +79,9 @@ The current control strategy is a phase-based state machine, covering:
 5. Flare
 6. Landing
 
+## UAV Trajectory Results
+<img src="pics/uav_trajectory_20250604_003836.png" alt="Waypoints and UAV Flight Trajectory" width="400"/>
+
 ## Credits
 * X-Plane 11 - [Download X-plane 11](https://www.x-plane.com/product/desktop/)
 * Raphael UAV Model – [ATA Team - Raphael V2 UAV 1.0.0](https://forums.x-plane.org/files/file/87594-ata-team-raphael-v2-uav/)
