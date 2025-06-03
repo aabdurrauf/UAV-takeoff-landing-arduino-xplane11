@@ -1,23 +1,33 @@
-# UAV Takeoff Landing Arduino X-Plane 11
-This project demonstrates an autonomous takeoff and landing system for a fixed-wing UAV in a simulated environment using X-Plane 11, an Arduino-based flight computer, and a Python interface. The UAV used is named Raphael UAV owned by ATA Team, and the entire flight mission — from takeoff to landing — is autonomously managed by a microcontroller running a custom algorithm.
+# UAV Waypoints Arduino X-Plane 11
+This project demonstrates an autonomous takeoff and landing system for a fixed-wing UAV in a simulated environment using X-Plane 11, an Arduino-based flight computer, and a Python interface. The UAV used is named Raphael UAV owned by the ATA Team, and the entire flight mission — from takeoff to landing — is autonomously managed by a microcontroller running a custom algorithm.
+
+Additionally, this project implements an autonomous waypoint mission capability, where waypoint calculation and mission planning can be performed directly on the Arduino Uno, enabling fully onboard navigation control without reliance on external computation.
 
 ## ✈️ Project Overview
-1. Objective: To use a microcontroller (Arduino) as a flight computer to autonomously control a fixed-wing UAV in the X-Plane 11 simulator.
+1. Objective: To use a microcontroller (Arduino) as a flight computer to autonomously control a fixed-wing UAV in the X-Plane 11 simulator, including waypoint navigation.
 2. Simulation Target: The Raphael UAV model (or any similar fixed-wing UAV model). [ATA Team - Raphael V2 UAV 1.0.0](https://forums.x-plane.org/files/file/87594-ata-team-raphael-v2-uav/)
-3. Control Flow: The flight computer onboard Arduino receives flight data, runs a state machine algorithm for autonomous takeoff and landing, and sends control inputs (elevator, aileron, rudder, throttle, and flaps) back to the simulator via Python.
+3. Control Flow: The flight computer onboard Arduino receives flight data, runs a state machine algorithm for autonomous takeoff, waypoint navigation, and landing, and sends control inputs (elevator, aileron, rudder, throttle, and flaps) back to the simulator via Python.
 
 ## 📁 Project Structure
 ```
 UAV-Takeoff-Landing-Arduino-XPlane11/
 ├── python/
-│   ├── xpc/            # NASA X-PlaneConnect library (UDP interface)
-│   ├── pyKey/          # Library to simulate keypress inputs in Python
+│   ├── xpc/              # NASA X-PlaneConnect library (UDP interface)
+│   ├── pyKey/            # Library to simulate keypress inputs in Python
 │   ├── takeoff_landing_arduino.py
 │   ├── mission_take_off_landing.py
-│   ├── uav.py
+│   ├── waypoints_mission_arduino.py
+│   ├── waypoints_mission.py
+│   ├── waypoints_mission_land.py    # this is not done, if you want to finish this program code, just fork and work on it
+│   ├── shift_aircraft.py            # for observation
+│   ├── uav.py            # uav class (helper class)
 │   └── utils.py
-└── uav_xplane/
-    └── uav_takeoff_landing.ino  # Arduino source code (.ino file)
+├── uav_xplane/
+│   └── uav_takeoff_landing.ino      # Arduino source code (.ino file)
+└── uav_waypoints/main    # for autonomous waypoint mission
+    ├── main.ino
+    ├── utils.cpp
+    └── utils.h
 ```
 
 - python/: Contains Python code to communicate with both X-Plane and Arduino.
@@ -37,10 +47,10 @@ UAV-Takeoff-Landing-Arduino-XPlane11/
   
 ## 🚀 How to Run
 1. Flash Arduino Code
-- Open the uav_takeoff_landing.ino file in Arduino IDE and upload it to your Arduino board.
+- Open the uav_takeoff_landing.ino (for take off and landing only) or main.ino (for autonomous waypoint mission) file in Arduino IDE and upload it to your Arduino board.
 2. Start X-Plane 11
 - Load the UAV model and start a simulation scenario.
-3. Run Python Script
+3. Run Python Script according to the mission (can be inferred from the file name)
 
 ## 🔁 Data Flow
 ```
@@ -64,7 +74,7 @@ The system is modular: you can replace the UAV model as long as it's a fixed-win
 The current control strategy is a phase-based state machine, covering:
 1. Takeoff
 2. Climb
-3. Cruise
+3. Cruise (waypoint mission if used)
 4. Descent
 5. Flare
 6. Landing
