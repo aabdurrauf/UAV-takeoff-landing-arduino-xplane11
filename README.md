@@ -80,7 +80,9 @@ The current control strategy is a phase-based state machine, covering:
 6. Landing
 
 ## UAV Trajectory Results
-<img src="pics/uav_trajectory_20250604_003836.png" alt="Waypoints and UAV Flight Trajectory" width="400"/>
+<img src="pics/uav_trajectory_20250601_212425.png" alt="Waypoints and UAV Flight Trajectory" width="300"/>
+<img src="pics/uav_trajectory_20250601_213602.png" alt="Waypoints and UAV Flight Trajectory" width="300"/>
+<img src="pics/uav_trajectory_20250604_003836.png" alt="Waypoints and UAV Flight Trajectory" width="300"/>
 
 ## Credits
 * X-Plane 11 - [Download X-plane 11](https://www.x-plane.com/product/desktop/)
