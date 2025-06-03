@@ -9,8 +9,6 @@ Created on Thu May 01 21:39:27 2025
 import os
 import uav
 import time
-import serial
-import struct
 import random
 import math
 import matplotlib.pyplot as plt

@@ -11,8 +11,6 @@ import uav
 import time
 import serial
 import struct
-import random
-import math
 import matplotlib.pyplot as plt
 from datetime import datetime
 from itertools import permutations
